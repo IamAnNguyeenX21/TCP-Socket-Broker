@@ -14,6 +14,6 @@ void print_list(routing_information* head);
 void add_last(routing_information** head, int client_fd);
 void delete_node(routing_information** head, int client_fd);
 void check_and_add(routing_information** head, int client_fd);
-
+void check_and_delete(routing_information** head, int client_fd);
 
 #endif

@@ -96,17 +96,17 @@ void check_and_add(routing_information** head, int client_fd)
     printf("[DB] Added client %d to the routing table.\n", client_fd);
 }
 
-// void check_and_delete(routing_information** head, int client_fd)
-// {
-//     routing_information* temp = *head;
-//     while (temp != NULL)
-//     {
-//         if (temp->client_fd == client_fd)
-//         {
-//             delete_node(head, client_fd);
-//             return;
-//         }
-//         temp = temp->next;
-//     }
-//     printf("[DB] Client %d not found, no deletion performed.\n", client_fd);
-// }
+void check_and_delete(routing_information** head, int client_fd)
+{
+    routing_information* temp = *head;
+    while (temp != NULL)
+    {
+        if (temp->client_fd == client_fd)
+        {
+            delete_node(head, client_fd);
+            return;
+        }
+        temp = temp->next;
+    }
+    printf("[DB] Client %d not found, no deletion performed.\n", client_fd);
+}
