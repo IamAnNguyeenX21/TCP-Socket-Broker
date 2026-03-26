@@ -33,6 +33,13 @@ void *thread_function(void *arg) {
         }
         if(strncmp(buffer, "exit", 4) == 0)
         {
+            for(int i = 0; i < 100; i++)
+            {
+                if(routing_table[i] != NULL)
+                {
+                    check_and_delete(&routing_table[i], client_fd);
+                }
+            }
             printf("Client requested to exit. Closing connection.\n");
             break;
         }
