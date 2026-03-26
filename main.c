@@ -40,20 +40,8 @@ void *thread_function(void *arg) {
         printf("Received message: %s\n", buffer);
         if(strncmp(buffer, "0x00", 4) == 0)
         {
-            routing_information* temp = routing_table[0];
-            while (temp != NULL && temp->client_fd != client_fd)
-            {
-                temp = temp->next;
-            }
-            if (temp == NULL)
-            {
-                add_last(&routing_table[0], client_fd);
-                printf("Added client %d to routing table.\n", client_fd);
-            }
-            else
-            {
-                printf("Client %d already exists in routing table.\n", client_fd);
-            }
+            check_and_add(&routing_table[0], client_fd);
+
         }
         memset(buffer, 0, sizeof(buffer));
         send(client_fd, reply, strlen(reply), 0);
