@@ -10,6 +10,8 @@
 int main() {
     int sock = 0;
     struct sockaddr_in serv_addr;
+    int topic_list[100] = {0}; // Mảng để lưu trạng thái đăng ký của client với các topic
+    int topic_count = 0;
     char buffer[1024] = {0};
     char input[1024];
 
@@ -42,7 +44,7 @@ int main() {
 
     // 4. Vòng lặp giao tiếp
     while(1) {
-        printf("Client > ");
+        printf("\nClient > ");
         
         // Đọc dữ liệu nhập từ bàn phím
         if (fgets(input, sizeof(input), stdin) == NULL) break;
@@ -58,6 +60,52 @@ int main() {
             printf("Đang ngắt kết nối...\n");
             break;
         }
+
+        // Xử lý đăng ký và hủy đăng ký topic
+        if(strncmp(input, "0x00", 4) == 0)
+        {
+            int topic_id = atoi(input + 4);
+            if(topic_id > 0 && topic_id < 100)
+            {
+                printf("Đăng ký topic %d\n", topic_id);
+                topic_list[topic_count++] = topic_id;
+                // send(sock, input, strlen(input), 0);
+
+            }
+        }
+        else if(strncmp(input, "0x01", 4) == 0)
+        {
+            int topic_id = atoi(input + 4);
+            if(topic_id > 0 && topic_id < 100)
+            {
+                printf("Hủy đăng ký topic %d\n", topic_id);
+                for(int i = 0; i < topic_count; i++)
+                {
+                    if(topic_list[i] == topic_id)
+                    {
+                        for(int j = i; j < topic_count -1; j++)
+                        {
+                            topic_list[j] = topic_list[j+1];
+                        }
+                        break;
+                    }
+                }
+                topic_count--;
+                // send(sock, input, strlen(input), 0);
+            }
+        }
+        else
+        {
+            // Ghép message theo định dạng topic_id+message và gửi
+            char message[sizeof(input) + 1];
+            for(int i = 0; i < topic_count; i++)
+            {
+                snprintf(message, sizeof(message), "%d%s", topic_list[i], input);
+                send(sock, message, strlen(message), 0);
+            }
+        }
+
+
 
         // Chờ nhận phản hồi từ Server
         memset(buffer, 0, sizeof(buffer));
