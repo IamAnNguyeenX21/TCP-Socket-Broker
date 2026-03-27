@@ -61,7 +61,7 @@ int main() {
             break;
         }
 
-        // Xử lý đăng ký và hủy đăng ký topic
+        // Xử lý đăng ký và hủy đăng ký topics
         if(strncmp(input, "0x00", 4) == 0)
         {
             int topic_id = atoi(input + 4);
