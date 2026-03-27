@@ -14,7 +14,16 @@ routing_information* routing_table[100];
 
 void *thread_function(void *arg) {
     printf("Hello from the thread!\n");
-    print_list(routing_table[0]);
+    // print_list(routing_table[10]);
+    for(int i = 0; i < 100; i++)
+    {
+        if(routing_table[i] != NULL)
+        {
+            printf("Topic %d: ", i);
+            print_list(routing_table[i]);
+            printf("\n");
+        }
+    }
     int client_fd = *(int *)arg;
     free(arg);
     char buffer[1024];
@@ -47,8 +56,46 @@ void *thread_function(void *arg) {
         printf("Received message: %s\n", buffer);
         if(strncmp(buffer, "0x00", 4) == 0)
         {
-            check_and_add(&routing_table[0], client_fd);
-
+            int topic_id = atoi(buffer + 4);
+            if(topic_id > 0 && topic_id < 100)
+            {
+                printf("Client subscribed to topic %d\n", topic_id);
+                check_and_add(&routing_table[topic_id], client_fd);
+            }
+            else
+            {
+                printf("Invalid topic ID: %d\n", topic_id);
+            }
+        }
+        if(strncmp(buffer, "0x01", 4) == 0)
+        {
+            int topic_id = atoi(buffer + 4);
+            if(topic_id > 0 && topic_id < 100)
+            {
+                printf("Client unsubscribed from topic %d\n", topic_id);
+                check_and_delete(&routing_table[topic_id], client_fd);
+            }
+            else
+            {
+                printf("Invalid topic ID: %d\n", topic_id);
+            }
+        }
+        int topic_id = atoi(buffer);
+        if(topic_id > 0 && topic_id < 100)
+        {
+            printf("Client published to topic %d\n", topic_id);
+            routing_information* temp = routing_table[topic_id];
+            while(temp != NULL)
+            {
+                if(temp->client_fd != client_fd)
+                {
+                    char msg[1024];
+                    snprintf(msg, sizeof(msg), "Message from topic %d: %s", topic_id, buffer + 1);
+                    printf("Forwarding message to client %d: %s\n", temp->client_fd, msg);
+                    send(temp->client_fd, msg, strlen(msg), 0);
+                }
+                temp = temp->next;
+            }
         }
         memset(buffer, 0, sizeof(buffer));
         send(client_fd, reply, strlen(reply), 0);
