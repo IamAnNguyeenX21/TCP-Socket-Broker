@@ -13,6 +13,18 @@ routing_information* node_init(int client_fd)
     return NULL;
 }
 
+int topic_entry_init(topic_entry* entry, routing_information** head, int topic_id)
+{
+    entry->topic_id = topic_id;
+    entry->head = head;
+    if(pthread_mutex_init(&entry->mutex, NULL) != 0)
+    {
+        printf("[DB] Mutex init failed for topic %d\n", topic_id);
+        return -1;
+    }
+    return 0;
+}
+
 void add_last(routing_information** head, int client_fd)
 {
     routing_information* new_node = node_init(client_fd);

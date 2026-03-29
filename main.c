@@ -4,17 +4,16 @@
 #include <pthread.h>
 #include <string.h>
 #include <sys/socket.h>
-// #include <sys/un.h>
 #include <netinet/in.h>
 #include "routing_table.h"
 
 routing_information* routing_table[100];
+topic_entry topic_entry_table[100];
 
 #define PORT 8080
 
 void *thread_function(void *arg) {
     printf("Hello from the thread!\n");
-    // print_list(routing_table[10]);
     for(int i = 0; i < 100; i++)
     {
         if(routing_table[i] != NULL)
@@ -107,11 +106,12 @@ void *thread_function(void *arg) {
 int main () {
 
     printf("Hello from the main thread!\n");
-    printf("Hello from the 1st thread!\n");
+    
     
     for(int i = 0; i < 100; i++)
     {
         routing_table[i] = NULL;
+        topic_entry_init(&topic_entry_table[i], &routing_table[i], i);
     }
 
     int server_fd, new_socket;
