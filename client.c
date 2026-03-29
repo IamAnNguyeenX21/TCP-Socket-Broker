@@ -2,17 +2,39 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
 #define PORT 8080
+
+void *recv_thread_function(void *arg) {
+    int sock = *(int *)arg;
+    char buffer[1024] = {0};
+    while(1) {
+        int valread = read(sock, buffer, 1024 - 1);
+        if (valread > 0) {
+            printf("\nServer trả lời: %s\n", buffer);
+            printf("\nClient > ");
+            fflush(stdout); 
+            
+
+        } else if (valread == 0) {
+            printf("\nServer đã đóng kết nối.\n");
+            break;
+        }
+        memset(buffer, 0, sizeof(buffer));
+    }
+    return NULL;
+}
+
 
 int main() {
     int sock = 0;
     struct sockaddr_in serv_addr;
     int topic_list[100] = {0}; // Mảng để lưu trạng thái đăng ký của client với các topic
     int topic_count = 0;
-    char buffer[1024] = {0};
+    // char buffer[1024] = {0};
     char input[1024];
 
     printf("--- KHỞI TẠO TCP CLIENT ---\n");
@@ -41,6 +63,15 @@ int main() {
 
     printf("Đã kết nối thành công đến Server!\n");
     printf("Gõ tin nhắn để gửi (Gõ 'exit' để thoát).\n\n");
+    // Tạo thread để nhận phản hồi từ Server
+    pthread_t recv_thread;
+    if(pthread_create(&recv_thread, NULL, recv_thread_function, (void*)&sock) != 0)
+    {
+        perror("Lỗi tạo thread nhận");
+        // break;
+        return -1;
+    }
+    pthread_detach(recv_thread);
 
     // 4. Vòng lặp giao tiếp
     while(1) {
@@ -53,11 +84,13 @@ int main() {
         input[strcspn(input, "\n")] = '\0';
 
         // Gửi qua mạng
-        send(sock, input, strlen(input), 0);
+        // send(sock, input, strlen(input), 0);
 
         // Logic thoát
         if (strncmp(input, "exit", 4) == 0) {
             printf("Đang ngắt kết nối...\n");
+            send(sock, input, strlen(input), 0);
+
             break;
         }
 
@@ -69,7 +102,7 @@ int main() {
             {
                 printf("Đăng ký topic %d\n", topic_id);
                 topic_list[topic_count++] = topic_id;
-                // send(sock, input, strlen(input), 0);
+                send(sock, input, strlen(input), 0);
 
             }
         }
@@ -91,7 +124,7 @@ int main() {
                     }
                 }
                 topic_count--;
-                // send(sock, input, strlen(input), 0);
+                send(sock, input, strlen(input), 0);
             }
         }
         else
@@ -108,14 +141,15 @@ int main() {
 
 
         // Chờ nhận phản hồi từ Server
-        memset(buffer, 0, sizeof(buffer));
-        int valread = read(sock, buffer, 1024 - 1);
-        if (valread > 0) {
-            printf("Server trả lời: %s", buffer);
-        } else if (valread == 0) {
-            printf("Server đã đóng kết nối.\n");
-            break;
-        }
+
+        // memset(buffer, 0, sizeof(buffer));
+        // int valread = read(sock, buffer, 1024 - 1);
+        // if (valread > 0) {
+        //     printf("Server trả lời: %s", buffer);
+        // } else if (valread == 0) {
+        //     printf("Server đã đóng kết nối.\n");
+        //     break;
+        // }
     }
 
     // 5. Đóng socket
