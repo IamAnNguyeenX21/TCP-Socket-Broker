@@ -32,9 +32,8 @@ void *recv_thread_function(void *arg) {
 int main() {
     int sock = 0;
     struct sockaddr_in serv_addr;
-    int topic_list[100] = {0}; // Mảng để lưu trạng thái đăng ký của client với các topic
+    int topic_list[100] = {0}; 
     int topic_count = 0;
-    // char buffer[1024] = {0};
     char input[1024];
 
     printf("--- KHỞI TẠO TCP CLIENT ---\n");
@@ -68,7 +67,6 @@ int main() {
     if(pthread_create(&recv_thread, NULL, recv_thread_function, (void*)&sock) != 0)
     {
         perror("Lỗi tạo thread nhận");
-        // break;
         return -1;
     }
     pthread_detach(recv_thread);
@@ -137,21 +135,7 @@ int main() {
                 send(sock, message, strlen(message), 0);
             }
         }
-
-
-
-        // Chờ nhận phản hồi từ Server
-
-        // memset(buffer, 0, sizeof(buffer));
-        // int valread = read(sock, buffer, 1024 - 1);
-        // if (valread > 0) {
-        //     printf("Server trả lời: %s", buffer);
-        // } else if (valread == 0) {
-        //     printf("Server đã đóng kết nối.\n");
-        //     break;
-        // }
     }
-
     // 5. Đóng socket
     close(sock);
     return 0;
