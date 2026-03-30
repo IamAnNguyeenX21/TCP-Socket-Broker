@@ -63,7 +63,9 @@ void *thread_function(void *arg) {
                 }
                 pthread_mutex_unlock(&topic_entry_table[i].mutex);
             }
+            send(client_fd, "Goodbye!\n", 9, 0);
             printf("Client requested to exit. Closing connection.\n");
+            sleep(1);
             break;
         }
         buffer[received_byte] = '\0';
@@ -109,7 +111,7 @@ void *thread_function(void *arg) {
                 if(temp->client_fd != client_fd)
                 {
                     char msg[1024];
-                    snprintf(msg, sizeof(msg), "Message from topic %d: %s", topic_id, buffer + 1);
+                    snprintf(msg, sizeof(msg), "Message from topic %d: %s\n", topic_id, buffer + 1);
                     printf("Forwarding message to client %d: %s\n", temp->client_fd, msg);
                     send(temp->client_fd, msg, strlen(msg), 0);
                 }
@@ -131,6 +133,7 @@ void *thread_function(void *arg) {
     }
 
     close(client_fd);
+    printf("Connection with client closed.\n");
     return NULL;
 }
 

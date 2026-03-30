@@ -13,18 +13,19 @@ void *recv_thread_function(void *arg) {
     char buffer[1024] = {0};
     while(1) {
         int valread = read(sock, buffer, 1024 - 1);
-        if (valread > 0) {
+        if ((valread > 0) && (strncmp(buffer, "Goodbye!\n", 9) != 0)) {
             printf("\nServer trả lời: %s\n", buffer);
             printf("\nClient > ");
             fflush(stdout); 
             
 
-        } else if (valread == 0) {
+        } else if ((valread == 0) || (strncmp(buffer, "Goodbye!\n", 9) == 0)) {
             printf("\nServer đã đóng kết nối.\n");
             break;
         }
         memset(buffer, 0, sizeof(buffer));
-    }
+    }            
+
     return NULL;
 }
 
@@ -88,7 +89,7 @@ int main() {
         if (strncmp(input, "exit", 4) == 0) {
             printf("Đang ngắt kết nối...\n");
             send(sock, input, strlen(input), 0);
-
+            sleep(1);
             break;
         }
 
