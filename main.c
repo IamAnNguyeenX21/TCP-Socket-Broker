@@ -5,10 +5,20 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include "routing_table.h"
 
 routing_information* routing_table[100];
 topic_entry topic_entry_table[100];
+
+// volatile sig_atomic_t server_running = 1;
+
+// void signal_handler(int signum) {
+//     if (signum == SIGINT) {
+//         printf("\nServer suspended...\n");
+//         server_running = 0;
+//     }
+// }
 
 #define PORT 8080
 
@@ -16,12 +26,14 @@ void *thread_function(void *arg) {
     printf("Hello from the thread!\n");
     for(int i = 0; i < 100; i++)
     {
+        pthread_mutex_lock(&topic_entry_table[i].mutex);
         if(routing_table[i] != NULL)
         {
             printf("Topic %d: ", i);
             print_list(routing_table[i]);
             printf("\n");
         }
+        pthread_mutex_unlock(&topic_entry_table[i].mutex);
     }
     int client_fd = *(int *)arg;
     free(arg);
@@ -31,10 +43,11 @@ void *thread_function(void *arg) {
     char *reply = "OK!\n";
     while(1)
     {
+        memset(buffer, 0, sizeof(buffer));
+
         received_byte = read(client_fd, buffer, 1023);
         
-        
-        if(received_byte < 0)
+        if(received_byte <= 0)
         {
             perror("recv failed");
             break;
@@ -43,10 +56,12 @@ void *thread_function(void *arg) {
         {
             for(int i = 0; i < 100; i++)
             {
+                pthread_mutex_lock(&topic_entry_table[i].mutex);
                 if(routing_table[i] != NULL)
                 {
                     check_and_delete(&routing_table[i], client_fd);
                 }
+                pthread_mutex_unlock(&topic_entry_table[i].mutex);
             }
             printf("Client requested to exit. Closing connection.\n");
             break;
@@ -58,8 +73,10 @@ void *thread_function(void *arg) {
             int topic_id = atoi(buffer + 4);
             if(topic_id > 0 && topic_id < 100)
             {
+                pthread_mutex_lock(&topic_entry_table[topic_id].mutex);
                 printf("Client subscribed to topic %d\n", topic_id);
                 check_and_add(&routing_table[topic_id], client_fd);
+                pthread_mutex_unlock(&topic_entry_table[topic_id].mutex);
             }
             else
             {
@@ -71,8 +88,10 @@ void *thread_function(void *arg) {
             int topic_id = atoi(buffer + 4);
             if(topic_id > 0 && topic_id < 100)
             {
+                pthread_mutex_lock(&topic_entry_table[topic_id].mutex);
                 printf("Client unsubscribed from topic %d\n", topic_id);
                 check_and_delete(&routing_table[topic_id], client_fd);
+                pthread_mutex_unlock(&topic_entry_table[topic_id].mutex);
             }
             else
             {
@@ -83,6 +102,7 @@ void *thread_function(void *arg) {
         if(topic_id > 0 && topic_id < 100)
         {
             printf("Client published to topic %d\n", topic_id);
+            pthread_mutex_lock(&topic_entry_table[topic_id].mutex);
             routing_information* temp = routing_table[topic_id];
             while(temp != NULL)
             {
@@ -95,10 +115,21 @@ void *thread_function(void *arg) {
                 }
                 temp = temp->next;
             }
+            pthread_mutex_unlock(&topic_entry_table[topic_id].mutex);
         }
-        memset(buffer, 0, sizeof(buffer));
         send(client_fd, reply, strlen(reply), 0);
     }
+
+    for(int i = 0; i < 100; i++)
+    {
+        pthread_mutex_lock(&topic_entry_table[i].mutex);
+        if(routing_table[i] != NULL)
+        {
+            check_and_delete(&routing_table[i], client_fd);
+        }
+        pthread_mutex_unlock(&topic_entry_table[i].mutex);
+    }
+
     close(client_fd);
     return NULL;
 }
@@ -106,7 +137,7 @@ void *thread_function(void *arg) {
 int main () {
 
     printf("Hello from the main thread!\n");
-    
+    // signal(SIGINT, signal_handler);
     
     for(int i = 0; i < 100; i++)
     {
@@ -151,6 +182,10 @@ int main () {
     {
         if((new_socket = accept(server_fd, (struct sockaddr*)&server_address, &addrlen)) < 0)
         {
+            // if(!server_running)
+            // {
+            //     break;
+            // }
             perror("accept");
             exit(EXIT_FAILURE);
         }
@@ -160,6 +195,12 @@ int main () {
         pthread_create(&thread_id, NULL, thread_function, pclient);
         pthread_detach(thread_id);
     }
+
+    // for(int i = 0; i < 100; i++)
+    // {
+    //     pthread_mutex_destroy(&topic_entry_table[i].mutex);
+    // }
+    // printf("Server Terminated...\n");
     close(server_fd);
     return 0;
 }
