@@ -17,7 +17,7 @@ volatile sig_atomic_t server_running = 1;
 
 void signal_handler(int signum) {
     if (signum == SIGINT) {
-        printf("\n[System] Nhận tín hiệu ngắt. Đang dọn dẹp Server...\n");
+        printf("\n[System] SIGINT received. Shutting down server...\n");
         server_running = 0;
     }
 }
@@ -26,7 +26,7 @@ void signal_handler(int signum) {
 
 int main () 
 {
-    printf("--- Bắt đầu khởi động Server (Chế độ Single-Thread với select) ---\n");
+    printf("Server starting...\n");
     
     // Đăng ký bắt tín hiệu Ctrl+C chuẩn xác
     struct sigaction sa;
@@ -71,11 +71,10 @@ int main ()
         exit(EXIT_FAILURE);
     }
 
-    // 2. KHỞI TẠO SỔ NAM TÀO CHO SELECT()
     fd_set master_set, read_set;
     FD_ZERO(&master_set);
-    FD_SET(server_fd, &master_set); // Thêm bác bảo vệ (server_fd) vào sổ
-    int max_fd = server_fd;         // Số FD lớn nhất hiện tại
+    FD_SET(server_fd, &master_set); 
+    int max_fd = server_fd;    
 
     printf("[System] Server listening on port %d\n", PORT);
 
@@ -107,8 +106,8 @@ int main ()
                         perror("accept");
                         continue;
                     }
-                    printf(">> [Kết nối mới] Client FD %d đã vào Server.\n", new_socket);
-                    
+                    printf("New connection accepted on FD %d\n", new_socket);
+
                     FD_SET(new_socket, &master_set); // Ghi danh khách mới vào sổ gốc
                     if (new_socket > max_fd) {
                         max_fd = new_socket; // Cập nhật mức trần FD
@@ -124,7 +123,7 @@ int main ()
                     if (received_byte <= 0 || strncmp(buffer, "exit", 4) == 0) 
                     {
                         if (received_byte == 0 || strncmp(buffer, "exit", 4) == 0) {
-                            printf("<< [Ngắt kết nối] Client FD %d đã rời đi.\n", i);
+                            printf("Client FD %d disconnected\n", i);
                             if(strncmp(buffer, "exit", 4) == 0) {
                                 send(i, "Goodbye!\n", 9, 0);
                             }
@@ -152,7 +151,7 @@ int main ()
                         {
                             int topic_id = atoi(buffer + 4);
                             if (topic_id > 0 && topic_id < 100) {
-                                printf("[SUB] Client FD %d đăng ký Topic %d\n", i, topic_id);
+                                printf("[SUB] Client FD %d subscribed to Topic %d\n", i, topic_id);
                                 check_and_add(&routing_table[topic_id], i);
                             } else {
                                 printf("Invalid topic ID: %d\n", topic_id);
@@ -163,7 +162,7 @@ int main ()
                         {
                             int topic_id = atoi(buffer + 4);
                             if (topic_id > 0 && topic_id < 100) {
-                                printf("[UNSUB] Client FD %d hủy đăng ký Topic %d\n", i, topic_id);
+                                printf("[UNSUB] Client FD %d unsubscribed from Topic %d\n", i, topic_id);
                                 check_and_delete(&routing_table[topic_id], i);
                             } else {
                                 printf("Invalid topic ID: %d\n", topic_id);
@@ -175,7 +174,7 @@ int main ()
                             int topic_id = atoi(buffer);
                             if (topic_id > 0 && topic_id < 100) 
                             {
-                                printf("[PUB] Client FD %d phát vào Topic %d\n", i, topic_id);
+                                printf("[PUB] Client FD %d published to Topic %d\n", i, topic_id);
                                 routing_information* temp = routing_table[topic_id];
                                 
                                 while (temp != NULL) 
@@ -201,7 +200,7 @@ int main ()
     } // End vòng lặp sự kiện
 
     // 5. QUY TRÌNH DỌN DẸP KHI SERVER TẮT
-    printf("\n[System] Đang đóng toàn bộ kết nối...\n");
+    printf("\n[System] Shutting down all connections...\n");
     for (int i = 0; i <= max_fd; i++) {
         if (FD_ISSET(i, &master_set)) {
             close(i); // Đóng cả server_fd lẫn các client_fd còn sót lại
@@ -215,6 +214,6 @@ int main ()
         }
     }
 
-    printf("[System] Server đã tắt an toàn.\n");
+    printf("[System] Server has shut down safely.\n");
     return 0;
 }
