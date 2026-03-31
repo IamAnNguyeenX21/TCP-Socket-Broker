@@ -93,12 +93,17 @@ int main ()
             perror("select error");
             break;
         }
-
+        int event_count = 0; 
         // 4. DUYỆT TÌM SOCKET NÀO ĐANG PHÁT TÍN HIỆU
         for (int i = 0; i <= max_fd; i++) 
         {
+            if(event_count >= activity) 
+            {
+                break;
+            }
             if (FD_ISSET(i, &read_set)) 
             {
+                event_count++;
                 // Trường hợp A: Tín hiệu từ cổng Server -> Có khách xin kết nối
                 if (i == server_fd) 
                 {
